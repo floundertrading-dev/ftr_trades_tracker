@@ -1,0 +1,86 @@
+name: FTR Daily Pull
+
+on:
+  schedule:
+    - cron: '0 17 * * *'  # 6:00 AM NZDT (17:00 UTC)
+  workflow_dispatch:
+
+jobs:
+  pull-ftr-data:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        run: pip install boto3 requests pandas numpy
+      
+      - name: Run FTR Daily Pull
+        id: pull
+        env:
+          FTR_CLIENT_ID: ${{ secrets.FTR_CLIENT_ID }}
+          FTR_USERNAME: ${{ secrets.FTR_USERNAME }}
+          FTR_PASSWORD: ${{ secrets.FTR_PASSWORD }}
+        run: |
+          python ftr_daily_pull_github.py 2>&1 | tee output.txt
+          
+          if grep -q "SELL:\|BUY:\|NEW:\|CLOSED:" output.txt; then
+            echo "changes_detected=true" >> $GITHUB_OUTPUT
+          else
+            echo "changes_detected=false" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Commit and push changes
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add ftr_tracking/
+          git diff --staged --quiet || git commit -m "FTR Daily Pull - $(date +'%Y-%m-%d')"
+          git push
+      
+      - name: Email - Trading Activity
+        if: steps.pull.outputs.changes_detected == 'true'
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          secure: true
+          username: ${{ secrets.EMAIL_USERNAME }}
+          password: ${{ secrets.EMAIL_PASSWORD }}
+          subject: "🔔 FTR Trading Activity Detected"
+          to: ${{ secrets.EMAIL_TO }}
+          from: FTR Bot <${{ secrets.EMAIL_USERNAME }}>
+          body: |
+            Trading activity detected!
+            
+            View details: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+            View ledger: https://github.com/${{ github.repository }}/blob/main/ftr_tracking/ftr_master_ledger.csv
+
+  notify-failure:
+    runs-on: ubuntu-latest
+    needs: pull-ftr-data
+    if: failure()
+    steps:
+      - name: Email - Script Failed
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          secure: true
+          username: ${{ secrets.EMAIL_USERNAME }}
+          password: ${{ secrets.EMAIL_PASSWORD }}
+          subject: "❌ FTR Daily Pull FAILED"
+          to: ${{ secrets.EMAIL_TO }}
+          from: FTR Bot <${{ secrets.EMAIL_USERNAME }}>
+          body: |
+            The FTR Daily Pull script failed!
+            
+            Check logs: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}

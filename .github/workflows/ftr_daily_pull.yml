@@ -1,19 +1,20 @@
-name: FTR Daily Pull
+name: FTR Daily Pull and Report
 
 on:
   schedule:
-    - cron: '0 17 * * *'  # 6:00 AM NZDT (17:00 UTC)
-  workflow_dispatch:
+    # 6 AM NZDT = 5 PM UTC (NZDT is UTC+13)
+    - cron: '0 17 * * *'
+  workflow_dispatch:  # Allow manual trigger
 
 jobs:
-  pull-ftr-data:
+  ftr-daily-update:
     runs-on: ubuntu-latest
     
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
       
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -21,66 +22,77 @@ jobs:
           python-version: '3.11'
       
       - name: Install dependencies
-        run: pip install boto3 requests pandas numpy
+        run: |
+          pip install pandas numpy requests openpyxl
       
       - name: Run FTR Daily Pull
-        id: pull
         env:
           FTR_CLIENT_ID: ${{ secrets.FTR_CLIENT_ID }}
           FTR_USERNAME: ${{ secrets.FTR_USERNAME }}
           FTR_PASSWORD: ${{ secrets.FTR_PASSWORD }}
         run: |
-          python ftr_daily_pull_github.py 2>&1 | tee output.txt
+          python ftr_daily_pull.py
+      
+      - name: Generate Daily Report
+        id: report
+        run: |
+          python ftr_report_generator.py
+          # Get the report file path
+          REPORT_FILE=$(ls -t ftr_tracking/reports/FTR_Daily_Report_*.xlsx 2>/dev/null | head -1)
+          echo "report_file=$REPORT_FILE" >> $GITHUB_OUTPUT
           
-          if grep -q "SELL:\|BUY:\|NEW:\|CLOSED:" output.txt; then
-            echo "changes_detected=true" >> $GITHUB_OUTPUT
-          else
-            echo "changes_detected=false" >> $GITHUB_OUTPUT
+          # Get email summary
+          if [ -f "ftr_tracking/reports/email_summary.txt" ]; then
+            echo "email_body<<EOF" >> $GITHUB_OUTPUT
+            cat ftr_tracking/reports/email_summary.txt >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
           fi
       
-      - name: Commit and push changes
+      - name: Commit changes
         run: |
-          git config --local user.email "github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "github-actions[bot]"
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
           git add ftr_tracking/
-          git diff --staged --quiet || git commit -m "FTR Daily Pull - $(date +'%Y-%m-%d')"
+          git diff --staged --quiet || git commit -m "Daily FTR update $(date +'%Y-%m-%d')"
           git push
       
-      - name: Email - Trading Activity
-        if: steps.pull.outputs.changes_detected == 'true'
+      - name: Send Daily Report Email
         uses: dawidd6/action-send-mail@v3
         with:
           server_address: smtp.gmail.com
-          server_port: 465
-          secure: true
+          server_port: 587
           username: ${{ secrets.EMAIL_USERNAME }}
           password: ${{ secrets.EMAIL_PASSWORD }}
-          subject: "🔔 FTR Trading Activity Detected"
+          subject: "FTR Daily Report - ${{ github.event.repository.name }}"
           to: ${{ secrets.EMAIL_TO }}
-          from: FTR Bot <${{ secrets.EMAIL_USERNAME }}>
+          from: FTR Trading Bot <${{ secrets.EMAIL_USERNAME }}>
           body: |
-            Trading activity detected!
+            ${{ steps.report.outputs.email_body }}
             
-            View details: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
-            View ledger: https://github.com/${{ github.repository }}/blob/main/ftr_tracking/ftr_master_ledger.csv
-
-  notify-failure:
-    runs-on: ubuntu-latest
-    needs: pull-ftr-data
-    if: failure()
-    steps:
-      - name: Email - Script Failed
+            ---
+            This is an automated report from GitHub Actions.
+            Repository: ${{ github.repository }}
+            Workflow: ${{ github.workflow }}
+            Run: ${{ github.run_number }}
+          attachments: ${{ steps.report.outputs.report_file }}
+      
+      - name: Notify on Failure
+        if: failure()
         uses: dawidd6/action-send-mail@v3
         with:
           server_address: smtp.gmail.com
-          server_port: 465
-          secure: true
+          server_port: 587
           username: ${{ secrets.EMAIL_USERNAME }}
           password: ${{ secrets.EMAIL_PASSWORD }}
-          subject: "❌ FTR Daily Pull FAILED"
+          subject: "⚠️ FTR Daily Pull FAILED - ${{ github.event.repository.name }}"
           to: ${{ secrets.EMAIL_TO }}
-          from: FTR Bot <${{ secrets.EMAIL_USERNAME }}>
+          from: FTR Trading Bot <${{ secrets.EMAIL_USERNAME }}>
           body: |
-            The FTR Daily Pull script failed!
+            The FTR Daily Pull workflow has failed!
             
-            Check logs: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+            Repository: ${{ github.repository }}
+            Workflow: ${{ github.workflow }}
+            Run: ${{ github.run_number }}
+            
+            Please check the GitHub Actions logs for details:
+            https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}

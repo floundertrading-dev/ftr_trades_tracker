@@ -23,7 +23,7 @@ jobs:
       
       - name: Install dependencies
         run: |
-          pip install pandas numpy requests openpyxl
+          pip install pandas numpy requests openpyxl boto3
       
       - name: Run FTR Daily Pull
         env:

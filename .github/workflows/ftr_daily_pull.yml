@@ -31,7 +31,7 @@ jobs:
           FTR_USERNAME: ${{ secrets.FTR_USERNAME }}
           FTR_PASSWORD: ${{ secrets.FTR_PASSWORD }}
         run: |
-          python ftr_daily_pull.py
+          python ftr_daily_pull_github.py
       
       - name: Generate Daily Report
         id: report

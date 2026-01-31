@@ -1,0 +1,18 @@
+FTR Daily Report - January 31, 2026
+========================================
+
+📊 POSITION PERFORMANCE
+   Total Positions: 1,040
+   Latest Day P&L: $-653,663.71
+   MTD P&L: $-19,179,558.75
+
+   🟢 Top 3 Performers:
+      OTA → HAY (OBL): $231,363
+      ISL → BEN (OBL): $81,100
+      OTA → WKM (OBL): $62,058
+   🔴 Bottom 3 Performers:
+      WKM → OTA (OBL): $-393,843
+      BEN → HAY (OPT): $-454,888
+      WKM → OTA (OPT): $-486,861
+
+📎 Full report attached: FTR_Daily_Report_20260131.xlsx

@@ -7,3 +7,12 @@
 2026-01-31 07:43:36,097 - INFO - First run - initializing ledger
 2026-01-31 07:43:36,694 - INFO - Ledger: +10000 records
 2026-01-31 07:43:36,695 - INFO - Completed
+2026-01-31 09:43:59,982 - INFO - ==================================================
+2026-01-31 09:43:59,982 - INFO - FTR Daily Pull Started
+2026-01-31 09:44:00,793 - INFO - Authenticated successfully
+2026-01-31 09:44:09,056 - INFO - Page 1: 42 records
+2026-01-31 09:44:09,066 - INFO - Total FTR records: 10000
+2026-01-31 09:44:09,128 - INFO - Saved: /home/runner/work/ftr_trades_tracker/ftr_trades_tracker/ftr_tracking/snapshots/ftr_snapshot_20260131.csv
+2026-01-31 09:44:09,128 - INFO - First run - initializing ledger
+2026-01-31 09:44:09,751 - INFO - Ledger: +10000 records
+2026-01-31 09:44:09,752 - INFO - Completed

@@ -2164,3 +2164,10 @@
 2026-02-01 17:18:52,452 - INFO - NEW: 9623799 - 10.0MW
 2026-02-01 17:18:52,634 - INFO - Ledger: +2122 records
 2026-02-01 17:18:52,637 - INFO - Completed
+2026-02-02 17:32:48,341 - INFO - ==================================================
+2026-02-02 17:32:48,341 - INFO - FTR Daily Pull Started
+2026-02-02 17:32:49,421 - INFO - Authenticated successfully
+2026-02-02 17:32:58,512 - INFO - Page 1: 41 records
+2026-02-02 17:32:58,523 - INFO - Total FTR records: 10000
+2026-02-02 17:32:58,594 - INFO - Saved: /home/runner/work/ftr_trades_tracker/ftr_trades_tracker/ftr_tracking/snapshots/ftr_snapshot_20260202.csv
+2026-02-02 17:32:59,020 - INFO - Completed

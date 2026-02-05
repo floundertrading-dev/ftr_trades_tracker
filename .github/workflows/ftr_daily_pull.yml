@@ -38,7 +38,7 @@ jobs:
       - name: Generate Daily Report
         id: report
         run: |
-          python ftr_report_generator.py
+          python ftr_report_generator_daily.py
           REPORT_FILE=$(ls -t ftr_tracking/reports/FTR_Daily_Report_*.xlsx 2>/dev/null | head -1)
           if [ -n "$REPORT_FILE" ]; then
             echo "report_file=$REPORT_FILE" >> "$GITHUB_OUTPUT"

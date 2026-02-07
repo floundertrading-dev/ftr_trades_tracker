@@ -2220,3 +2220,10 @@
 2026-02-06 17:36:17,996 - INFO - Total FTR records: 10000
 2026-02-06 17:36:18,061 - INFO - Saved: /home/runner/work/ftr_trades_tracker/ftr_trades_tracker/ftr_tracking/snapshots/ftr_snapshot_20260206.csv
 2026-02-06 17:36:18,492 - INFO - Completed
+2026-02-07 17:20:35,057 - INFO - ==================================================
+2026-02-07 17:20:35,057 - INFO - FTR Daily Pull Started
+2026-02-07 17:20:36,059 - INFO - Authenticated successfully
+2026-02-07 17:20:44,631 - INFO - Page 1: 41 records
+2026-02-07 17:20:44,640 - INFO - Total FTR records: 10000
+2026-02-07 17:20:44,707 - INFO - Saved: /home/runner/work/ftr_trades_tracker/ftr_trades_tracker/ftr_tracking/snapshots/ftr_snapshot_20260207.csv
+2026-02-07 17:20:45,136 - INFO - Completed

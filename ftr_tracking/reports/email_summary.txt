@@ -1,4 +1,4 @@
-FTR Daily Report - February 08, 2026
+FTR Daily Report - February 09, 2026
 ========================================
 
 📊 POSITION PERFORMANCE
@@ -15,4 +15,4 @@ FTR Daily Report - February 08, 2026
       BEN → OTA (OBL): $-38,368,137
       BEN → HAY (OPT): $-30,793,887
 
-📎 Full report attached: FTR_Daily_Report_20260208.xlsx
+📎 Full report attached: FTR_Daily_Report_20260209.xlsx

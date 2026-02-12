@@ -1,9 +1,9 @@
-FLTR Portfolio Update — February 11, 2026
+FLTR Portfolio Update — February 12, 2026
 ══════════════════════════════════════════════════
 
-  📉 MTD Return: $   -115.85  (-13.7%)
+  📉 MTD Return: $    -91.08  (-10.8%)
   💰 Total Invested:  $    844.03
-  📅 Trading Days: 11
+  📅 Trading Days: 12
   ✅ Winners: 0   ❌ Losers: 3   (3 positions)
 
 ──────────────────────────────────────────────────
@@ -11,30 +11,30 @@ FLTR Portfolio Update — February 11, 2026
   📌 BEN→ISL (OPT) 0.2MW @ $2.41/MWh
      Investment:      $    323.90
      Price Paid:      $      2.41 /MWh
-     Today's Settl.:  $      4.69 /MWh
-     MTD Avg Settl.:  $      1.14 /MWh
-     Today's Return:  $     10.95
-     MTD Return:      $    -67.05
+     Today's Settl.:  $      4.20 /MWh
+     MTD Avg Settl.:  $      1.40 /MWh
+     Today's Return:  $      5.37
+     MTD Return:      $    -61.68
 
   📌 INV→KIK (OPT) 0.3MW @ $1.43/MWh
      Investment:      $    288.29
      Price Paid:      $      1.43 /MWh
-     Today's Settl.:  $      4.08 /MWh
-     MTD Avg Settl.:  $      1.01 /MWh
-     Today's Return:  $     19.05
-     MTD Return:      $    -33.50
+     Today's Settl.:  $      3.57 /MWh
+     MTD Avg Settl.:  $      1.22 /MWh
+     Today's Return:  $      9.63
+     MTD Return:      $    -23.87
 
   📌 INV→ISL (OPT) 0.5MW @ $0.69/MWh
      Investment:      $    231.84
      Price Paid:      $      0.69 /MWh
-     Today's Settl.:  $      2.24 /MWh
-     MTD Avg Settl.:  $      0.57 /MWh
-     Today's Return:  $     18.59
-     MTD Return:      $    -15.30
+     Today's Settl.:  $      1.99 /MWh
+     MTD Avg Settl.:  $      0.69 /MWh
+     Today's Return:  $      9.78
+     MTD Return:      $     -5.52
 
 ──────────────────────────────────────────────────
   💼 Portfolio Total
      Total Invested:  $    844.03
-     Today's Return:  $     48.59
-     MTD Return:      $   -115.85  (-13.7%)
+     Today's Return:  $     24.78
+     MTD Return:      $    -91.08  (-10.8%)
 ──────────────────────────────────────────────────

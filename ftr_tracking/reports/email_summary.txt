@@ -1,18 +1,18 @@
-FTR Daily Report - February 11, 2026
+FTR Daily Report - February 12, 2026
 ========================================
 
 📊 POSITION PERFORMANCE
    Total Positions: 10,000
-   Latest Day P&L: $-5,266,172.52
-   MTD P&L: $-78,885,835.71
+   Latest Day P&L: $-4,062,644.06
+   MTD P&L: $-81,518,853.01
 
    🟢 Top 3 Performers:
-      OTA → HAY (OBL): $1,398,924
-      OTA → WKM (OBL): $645,356
-      KIK → HAY (OPT): $380,181
+      OTA → HAY (OBL): $1,418,855
+      OTA → WKM (OBL): $670,501
+      KIK → HAY (OPT): $380,083
    🔴 Bottom 3 Performers:
-      WKM → OTA (OBL): $-20,029,751
-      BEN → ISL (OPT): $-8,922,669
-      BEN → ISL (OBL): $-7,914,509
+      WKM → OTA (OBL): $-20,516,099
+      BEN → ISL (OPT): $-9,066,279
+      BEN → ISL (OBL): $-8,313,893
 
-📎 Full report attached: FTR_Daily_Report_20260211.xlsx
+📎 Full report attached: FTR_Daily_Report_20260212.xlsx

@@ -1,0 +1,13 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+*.egg-info/
+
+# Spot price cache (downloaded fresh each run, too large for git)
+ftr_tracking/spot_cache/*.csv
+
+# OS files
+.DS_Store
+Thumbs.db

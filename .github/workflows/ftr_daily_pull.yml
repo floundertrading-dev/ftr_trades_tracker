@@ -75,8 +75,10 @@ ${OWNER_BODY}"
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          git add ftr_tracking/
+          git add ftr_tracking/ --ignore-errors
+          git reset HEAD ftr_tracking/spot_cache/*.csv 2>/dev/null || true
           git diff --staged --quiet || git commit -m "FTR Daily Pull & Report - $(date +'%Y-%m-%d')"
+          git pull --rebase || true
           git push
       
       - name: Send Daily Report Email

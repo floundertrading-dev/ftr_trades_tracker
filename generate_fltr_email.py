@@ -197,6 +197,7 @@ def generate_fltr_email(report_date_str=None):
         block = []
         block.append(f"  📌 {label}")
         block.append(f"     Investment:      ${investment:>10,.2f}")
+        block.append(f"     Price Paid:      ${price:>10.2f} /MWh")
         block.append(f"     Today's Settl.:  ${result['daily_settlement']:>10.2f} /MWh")
         block.append(f"     Today's Return:  ${result['daily_profit']:>10,.2f}")
         block.append(f"     MTD Return:      ${result['mtd_profit']:>10,.2f}")

@@ -3,18 +3,21 @@ FLTR Portfolio Update — February 11, 2026
 
   📌 INV→ISL (OPT) 0.5MW @ $0.69/MWh
      Investment:      $    231.84
+     Price Paid:      $      0.69 /MWh
      Today's Settl.:  $      2.24 /MWh
      Today's Return:  $     18.59
      MTD Return:      $    -15.30
 
   📌 INV→KIK (OPT) 0.3MW @ $1.43/MWh
      Investment:      $    288.29
+     Price Paid:      $      1.43 /MWh
      Today's Settl.:  $      4.08 /MWh
      Today's Return:  $     19.05
      MTD Return:      $    -33.50
 
   📌 BEN→ISL (OPT) 0.2MW @ $2.41/MWh
      Investment:      $    323.90
+     Price Paid:      $      2.41 /MWh
      Today's Settl.:  $      4.69 /MWh
      Today's Return:  $     10.95
      MTD Return:      $    -67.05

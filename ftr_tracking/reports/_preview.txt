@@ -1,0 +1,28 @@
+﻿python : 2026-02-13 05:19:57,232 - INFO - Report date: 2026-02-11
+At line:1 char:1
++ python generate_fltr_email.py 2>&1 | Out-File -FilePath ftr_tracking/ ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (2026-02-13 05:1...ate: 2026-02-11 
+   :String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+2026-02-13 05:19:57,782 - INFO - Live FLTR positions this month: 3
+2026-02-13 05:19:57,882 - INFO - Live BRAD positions this month: 74
+2026-02-13 05:20:00,397 - INFO - Live SWET positions this month: 98
+2026-02-13 05:20:03,695 - INFO - Combined owner email saved: C:\Users\1506043\f
+tr_trades_tracker\ftr_tracking\reports\owner_portfolio_email.txt
+2026-02-13 05:20:03,695 - INFO - Live FLTR positions this month: 3
+2026-02-13 05:20:03,795 - INFO - Live BRAD positions this month: 74
+2026-02-13 05:20:06,293 - INFO - Live SWET positions this month: 98
+Traceback (most recent call last):
+  File "C:\Users\1506043\ftr_trades_tracker\generate_fltr_email.py", line 303, 
+in <module>
+    generate_all_owner_emails(date_arg, owners)
+  File "C:\Users\1506043\ftr_trades_tracker\generate_fltr_email.py", line 292, 
+in generate_all_owner_emails
+    print(combined)
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.9_3.9.35
+68.0_x64__qbz5n2kfra8p0\lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+UnicodeEncodeError: 'charmap' codec can't encode characters in position 43-92: 
+character maps to <undefined>

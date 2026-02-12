@@ -86,6 +86,7 @@ def calculate_daily_and_mtd(position, spot_df, report_date):
     mtd_profit = 0.0
     daily_settlement = 0.0
     num_trading_days = 0
+    settlement_sum = 0.0  # sum of daily settlements for MTD average
 
     for trade_date in trading_dates:
         day_spot = mtd_spot[mtd_spot['Trading date'] == trade_date]
@@ -114,6 +115,7 @@ def calculate_daily_and_mtd(position, spot_df, report_date):
         day_profit = (day_settlement - price_paid) * mw * len(tp_merged) * 0.5
 
         mtd_profit += day_profit
+        settlement_sum += day_settlement
         num_trading_days += 1
 
         # If this is the report date, capture daily figures
@@ -121,23 +123,20 @@ def calculate_daily_and_mtd(position, spot_df, report_date):
             daily_profit = day_profit
             daily_settlement = day_settlement
 
+    mtd_settlement = settlement_sum / num_trading_days if num_trading_days > 0 else 0.0
+
     return {
         'daily_settlement': daily_settlement,
         'daily_profit': daily_profit,
         'mtd_profit': mtd_profit,
+        'mtd_settlement': mtd_settlement,
         'trading_days': num_trading_days,
     }
 
 
-def generate_owner_email(owner_code='FLTR', report_date_str=None):
-    """Generate the owner portfolio email text."""
-
-    # Load snapshot
-    snapshot_df, snap_date = get_snapshot_for_date(report_date_str)
-    report_date = datetime.strptime(snap_date, '%Y%m%d')
-    year_month = snap_date[:6]
-
-    logger.info(f"Report date: {report_date.date()}")
+def generate_owner_email(owner_code, snapshot_df, spot_df, report_date):
+    """Generate email text for a single owner. Returns the text or None."""
+    year_month = report_date.strftime('%Y%m')
 
     # Get owner positions with start date in current month
     owner_positions = snapshot_df[snapshot_df['CurrentOwner'] == owner_code].copy()
@@ -154,34 +153,20 @@ def generate_owner_email(owner_code='FLTR', report_date_str=None):
                            (owner_positions['_StartDate'] < month_end)].copy()
 
     if live.empty:
-        msg = f"No live {owner_code} positions for {report_date.strftime('%B %Y')}."
-        logger.warning(msg)
-        # Still write the file so the email step doesn't fail
-        out_path = REPORTS_DIR / f"{owner_code.lower()}_email_summary.txt"
-        out_path.write_text(msg, encoding='utf-8')
-        return msg
+        logger.warning(f"No live {owner_code} positions for {report_date.strftime('%B %Y')}.")
+        return None
 
     logger.info(f"Live {owner_code} positions this month: {len(live)}")
 
-    # Load spot prices
-    spot_df = load_spot_prices(year_month)
-    if spot_df is None:
-        return "Spot price data not available."
-
-    # ── Build email text ──────────────────────────────────────────────────
-
-    date_nice = report_date.strftime('%B %d, %Y')
-    lines = []
-    lines.append(f"{owner_code} Portfolio Update — {date_nice}")
-    lines.append("═" * 50)
-    lines.append("")
+    # ── Calculate all positions ───────────────────────────────────────────
 
     total_invested = 0.0
     total_daily = 0.0
     total_mtd = 0.0
+    wins = 0
+    losses = 0
     position_data = []
 
-    # Calculate all positions and store for sorting
     for _, pos in live.iterrows():
         result = calculate_daily_and_mtd(pos, spot_df, report_date)
 
@@ -193,6 +178,11 @@ def generate_owner_email(owner_code='FLTR', report_date_str=None):
         total_daily += result['daily_profit']
         total_mtd += result['mtd_profit']
 
+        if result['mtd_profit'] >= 0:
+            wins += 1
+        else:
+            losses += 1
+
         route = f"{pos['Source']}→{pos['Sink']}"
         label = f"{route} ({pos['HedgeType']}) {mw}MW @ ${price:.2f}/MWh"
 
@@ -201,6 +191,7 @@ def generate_owner_email(owner_code='FLTR', report_date_str=None):
             'investment': investment,
             'price': price,
             'daily_settlement': result['daily_settlement'],
+            'mtd_settlement': result['mtd_settlement'],
             'daily_profit': result['daily_profit'],
             'mtd_profit': result['mtd_profit'],
             'trading_days': result['trading_days']
@@ -208,6 +199,27 @@ def generate_owner_email(owner_code='FLTR', report_date_str=None):
 
     # Sort by investment (largest first)
     position_data.sort(key=lambda x: x['investment'], reverse=True)
+
+    trading_days = position_data[0]['trading_days'] if position_data else 0
+    pct_return = (total_mtd / total_invested * 100) if total_invested else 0
+
+    # ── Build email text ──────────────────────────────────────────────────
+
+    date_nice = report_date.strftime('%B %d, %Y')
+    lines = []
+    lines.append(f"{owner_code} Portfolio Update — {date_nice}")
+    lines.append("═" * 50)
+    lines.append("")
+
+    # Summary header
+    roi_icon = "📈" if total_mtd >= 0 else "📉"
+    lines.append(f"  {roi_icon} MTD Return: ${total_mtd:>10,.2f}  ({pct_return:+.1f}%)")
+    lines.append(f"  💰 Total Invested:  ${total_invested:>10,.2f}")
+    lines.append(f"  📅 Trading Days: {trading_days}")
+    lines.append(f"  ✅ Winners: {wins}   ❌ Losers: {losses}   ({len(position_data)} positions)")
+    lines.append("")
+    lines.append("─" * 50)
+    lines.append("")
 
     # Build position blocks
     position_blocks = []
@@ -217,6 +229,7 @@ def generate_owner_email(owner_code='FLTR', report_date_str=None):
         block.append(f"     Investment:      ${pos['investment']:>10,.2f}")
         block.append(f"     Price Paid:      ${pos['price']:>10.2f} /MWh")
         block.append(f"     Today's Settl.:  ${pos['daily_settlement']:>10.2f} /MWh")
+        block.append(f"     MTD Avg Settl.:  ${pos['mtd_settlement']:>10.2f} /MWh")
         block.append(f"     Today's Return:  ${pos['daily_profit']:>10,.2f}")
         block.append(f"     MTD Return:      ${pos['mtd_profit']:>10,.2f}")
         position_blocks.append("\n".join(block))
@@ -227,32 +240,64 @@ def generate_owner_email(owner_code='FLTR', report_date_str=None):
     lines.append(f"  💼 Portfolio Total")
     lines.append(f"     Total Invested:  ${total_invested:>10,.2f}")
     lines.append(f"     Today's Return:  ${total_daily:>10,.2f}")
-    lines.append(f"     MTD Return:      ${total_mtd:>10,.2f}")
+    lines.append(f"     MTD Return:      ${total_mtd:>10,.2f}  ({pct_return:+.1f}%)")
     lines.append("─" * 50)
     lines.append("")
 
-    # Add a small legend
-    pct_return = (total_mtd / total_invested * 100) if total_invested else 0
-    if total_mtd >= 0:
-        lines.append(f"  📈 MTD Return on Investment: {pct_return:+.1f}%")
-    else:
-        lines.append(f"  📉 MTD Return on Investment: {pct_return:+.1f}%")
+    return "\n".join(lines)
 
-    lines.append(f"  📅 Trading Days this month: {position_data[0]['trading_days'] if position_data else 0}")
-    lines.append("")
 
-    email_text = "\n".join(lines)
+def generate_all_owner_emails(report_date_str=None, owners=None):
+    """
+    Generate portfolio email summaries for all specified owners.
+    Combines them into a single file for the email body.
+    """
+    if owners is None:
+        owners = ['FLTR', 'BRAD', 'SWET']
 
-    # Save
-    out_path = REPORTS_DIR / f"{owner_code.lower()}_email_summary.txt"
-    out_path.write_text(email_text, encoding='utf-8')
-    logger.info(f"{owner_code} email summary saved: {out_path}")
+    # Load snapshot once
+    snapshot_df, snap_date = get_snapshot_for_date(report_date_str)
+    report_date = datetime.strptime(snap_date, '%Y%m%d')
+    year_month = snap_date[:6]
 
-    print(email_text)
-    return email_text
+    logger.info(f"Report date: {report_date.date()}")
+
+    # Load spot prices once
+    spot_df = load_spot_prices(year_month)
+    if spot_df is None:
+        logger.error("Spot price data not available.")
+        return
+
+    # Generate each owner section
+    sections = []
+    for owner in owners:
+        section = generate_owner_email(owner, snapshot_df, spot_df, report_date)
+        if section:
+            sections.append(section)
+
+    combined = "\n\n".join(sections)
+
+    # Save combined file
+    out_path = REPORTS_DIR / "owner_portfolio_email.txt"
+    out_path.write_text(combined, encoding='utf-8')
+    logger.info(f"Combined owner email saved: {out_path}")
+
+    # Also save individual files for backwards compatibility
+    for owner in owners:
+        section = generate_owner_email(owner, snapshot_df, spot_df, report_date)
+        if section:
+            ind_path = REPORTS_DIR / f"{owner.lower()}_email_summary.txt"
+            ind_path.write_text(section, encoding='utf-8')
+
+    print(combined.encode('ascii', 'replace').decode('ascii'))
+    return combined
 
 
 if __name__ == "__main__":
     date_arg = sys.argv[1] if len(sys.argv) > 1 else None
-    owner_arg = sys.argv[2] if len(sys.argv) > 2 else 'FLTR'
-    generate_owner_email(owner_arg, date_arg)
+    # Accept optional owner list: python generate_fltr_email.py [date] [OWNER1,OWNER2,...]
+    if len(sys.argv) > 2:
+        owners = sys.argv[2].split(',')
+    else:
+        owners = ['FLTR', 'BRAD', 'SWET']
+    generate_all_owner_emails(date_arg, owners)

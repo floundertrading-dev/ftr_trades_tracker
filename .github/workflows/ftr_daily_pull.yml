@@ -44,7 +44,9 @@ jobs:
         id: report
         run: |
           python ftr_report_generator_daily.py
-          python generate_fltr_email.py
+          python generate_fltr_email.py '' FLTR
+          python generate_fltr_email.py '' BRAD
+          python generate_fltr_email.py '' SWET
           REPORT_FILE=$(ls -t ftr_tracking/reports/FTR_Daily_Report_*.xlsx 2>/dev/null | head -1)
           if [ -n "$REPORT_FILE" ]; then
             echo "report_file=$REPORT_FILE" >> "$GITHUB_OUTPUT"
@@ -70,6 +72,19 @@ ${FLTR_BODY}"
           echo "email_body<<EOF" >> "$GITHUB_OUTPUT"
           echo "$EMAIL_BODY" >> "$GITHUB_OUTPUT"
           echo "EOF" >> "$GITHUB_OUTPUT"
+          # Store BRAD and SWET emails for separate sends
+          if [ -f "ftr_tracking/reports/brad_email_summary.txt" ]; then
+            BRAD_BODY=$(cat ftr_tracking/reports/brad_email_summary.txt)
+            echo "brad_email<<EOF" >> "$GITHUB_OUTPUT"
+            echo "$BRAD_BODY" >> "$GITHUB_OUTPUT"
+            echo "EOF" >> "$GITHUB_OUTPUT"
+          fi
+          if [ -f "ftr_tracking/reports/swet_email_summary.txt" ]; then
+            SWET_BODY=$(cat ftr_tracking/reports/swet_email_summary.txt)
+            echo "swet_email<<EOF" >> "$GITHUB_OUTPUT"
+            echo "$SWET_BODY" >> "$GITHUB_OUTPUT"
+            echo "EOF" >> "$GITHUB_OUTPUT"
+          fi
       
       - name: Commit and push changes
         run: |
@@ -93,6 +108,34 @@ ${FLTR_BODY}"
           from: FTR Bot <${{ secrets.EMAIL_USERNAME }}>
           body: ${{ steps.report.outputs.email_body }}
           attachments: ${{ steps.report.outputs.report_file }}
+      
+      - name: Send BRAD Portfolio Email
+        if: steps.report.outputs.brad_email != ''
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          secure: true
+          username: ${{ secrets.EMAIL_USERNAME }}
+          password: ${{ secrets.EMAIL_PASSWORD }}
+          subject: "BRAD Portfolio Update - $(date +'%Y-%m-%d')"
+          to: ${{ secrets.EMAIL_TO_BRAD }}
+          from: FTR Bot <${{ secrets.EMAIL_USERNAME }}>
+          body: ${{ steps.report.outputs.brad_email }}
+      
+      - name: Send SWET Portfolio Email
+        if: steps.report.outputs.swet_email != ''
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          secure: true
+          username: ${{ secrets.EMAIL_USERNAME }}
+          password: ${{ secrets.EMAIL_PASSWORD }}
+          subject: "SWET Portfolio Update - $(date +'%Y-%m-%d')"
+          to: ${{ secrets.EMAIL_TO_SWET }}
+          from: FTR Bot <${{ secrets.EMAIL_USERNAME }}>
+          body: ${{ steps.report.outputs.swet_email }}
 
   notify-failure:
     runs-on: ubuntu-latest

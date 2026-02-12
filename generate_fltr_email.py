@@ -1,14 +1,15 @@
 """
-Generate FLTR portfolio email summary
-======================================
-Creates a plain-text email summary for FLTR positions that are live
+Generate owner portfolio email summary
+=======================================
+Creates a plain-text email summary for owner positions that are live
 in the current month, showing investment, daily return, and MTD return.
 
-Usage: python generate_fltr_email.py [YYYYMMDD]
+Usage: python generate_fltr_email.py [YYYYMMDD] [OWNER]
   - If no date given, uses the latest snapshot date.
+  - If no owner given, defaults to FLTR.
   - Filters to positions with a StartDate in the same month as the report date.
 
-Output: ftr_tracking/reports/fltr_email_summary.txt
+Output: ftr_tracking/reports/{owner}_email_summary.txt
 """
 
 import sys
@@ -128,8 +129,8 @@ def calculate_daily_and_mtd(position, spot_df, report_date):
     }
 
 
-def generate_fltr_email(report_date_str=None):
-    """Generate the FLTR portfolio email text."""
+def generate_owner_email(owner_code='FLTR', report_date_str=None):
+    """Generate the owner portfolio email text."""
 
     # Load snapshot
     snapshot_df, snap_date = get_snapshot_for_date(report_date_str)
@@ -138,9 +139,9 @@ def generate_fltr_email(report_date_str=None):
 
     logger.info(f"Report date: {report_date.date()}")
 
-    # Get FLTR positions with start date in current month
-    fltr = snapshot_df[snapshot_df['CurrentOwner'] == 'FLTR'].copy()
-    fltr['_StartDate'] = pd.to_datetime(fltr['StartDate'], dayfirst=True)
+    # Get owner positions with start date in current month
+    owner_positions = snapshot_df[snapshot_df['CurrentOwner'] == owner_code].copy()
+    owner_positions['_StartDate'] = pd.to_datetime(owner_positions['StartDate'], dayfirst=True)
 
     # Filter to positions starting in the report month
     month_start = datetime(report_date.year, report_date.month, 1)
@@ -149,18 +150,18 @@ def generate_fltr_email(report_date_str=None):
     else:
         month_end = datetime(report_date.year, report_date.month + 1, 1)
 
-    live = fltr[(fltr['_StartDate'] >= month_start) &
-                (fltr['_StartDate'] < month_end)].copy()
+    live = owner_positions[(owner_positions['_StartDate'] >= month_start) &
+                           (owner_positions['_StartDate'] < month_end)].copy()
 
     if live.empty:
-        msg = f"No live FLTR positions for {report_date.strftime('%B %Y')}."
+        msg = f"No live {owner_code} positions for {report_date.strftime('%B %Y')}."
         logger.warning(msg)
         # Still write the file so the email step doesn't fail
-        out_path = REPORTS_DIR / "fltr_email_summary.txt"
+        out_path = REPORTS_DIR / f"{owner_code.lower()}_email_summary.txt"
         out_path.write_text(msg, encoding='utf-8')
         return msg
 
-    logger.info(f"Live FLTR positions this month: {len(live)}")
+    logger.info(f"Live {owner_code} positions this month: {len(live)}")
 
     # Load spot prices
     spot_df = load_spot_prices(year_month)
@@ -171,36 +172,53 @@ def generate_fltr_email(report_date_str=None):
 
     date_nice = report_date.strftime('%B %d, %Y')
     lines = []
-    lines.append(f"FLTR Portfolio Update — {date_nice}")
+    lines.append(f"{owner_code} Portfolio Update — {date_nice}")
     lines.append("═" * 50)
     lines.append("")
 
     total_invested = 0.0
     total_daily = 0.0
     total_mtd = 0.0
-    position_blocks = []
+    position_data = []
 
+    # Calculate all positions and store for sorting
     for _, pos in live.iterrows():
         result = calculate_daily_and_mtd(pos, spot_df, report_date)
 
         investment = float(pos['OriginalAcquisitionCost'] or 0)
+        mw = float(pos['MW'] or 0)
+        price = float(pos['Price'] or 0)
+
         total_invested += investment
         total_daily += result['daily_profit']
         total_mtd += result['mtd_profit']
 
-        mw = float(pos['MW'] or 0)
-        price = float(pos['Price'] or 0)
-
         route = f"{pos['Source']}→{pos['Sink']}"
         label = f"{route} ({pos['HedgeType']}) {mw}MW @ ${price:.2f}/MWh"
 
+        position_data.append({
+            'label': label,
+            'investment': investment,
+            'price': price,
+            'daily_settlement': result['daily_settlement'],
+            'daily_profit': result['daily_profit'],
+            'mtd_profit': result['mtd_profit'],
+            'trading_days': result['trading_days']
+        })
+
+    # Sort by investment (largest first)
+    position_data.sort(key=lambda x: x['investment'], reverse=True)
+
+    # Build position blocks
+    position_blocks = []
+    for pos in position_data:
         block = []
-        block.append(f"  📌 {label}")
-        block.append(f"     Investment:      ${investment:>10,.2f}")
-        block.append(f"     Price Paid:      ${price:>10.2f} /MWh")
-        block.append(f"     Today's Settl.:  ${result['daily_settlement']:>10.2f} /MWh")
-        block.append(f"     Today's Return:  ${result['daily_profit']:>10,.2f}")
-        block.append(f"     MTD Return:      ${result['mtd_profit']:>10,.2f}")
+        block.append(f"  📌 {pos['label']}")
+        block.append(f"     Investment:      ${pos['investment']:>10,.2f}")
+        block.append(f"     Price Paid:      ${pos['price']:>10.2f} /MWh")
+        block.append(f"     Today's Settl.:  ${pos['daily_settlement']:>10.2f} /MWh")
+        block.append(f"     Today's Return:  ${pos['daily_profit']:>10,.2f}")
+        block.append(f"     MTD Return:      ${pos['mtd_profit']:>10,.2f}")
         position_blocks.append("\n".join(block))
 
     lines.append("\n\n".join(position_blocks))
@@ -220,15 +238,15 @@ def generate_fltr_email(report_date_str=None):
     else:
         lines.append(f"  📉 MTD Return on Investment: {pct_return:+.1f}%")
 
-    lines.append(f"  📅 Trading Days this month: {result['trading_days']}")
+    lines.append(f"  📅 Trading Days this month: {position_data[0]['trading_days'] if position_data else 0}")
     lines.append("")
 
     email_text = "\n".join(lines)
 
     # Save
-    out_path = REPORTS_DIR / "fltr_email_summary.txt"
+    out_path = REPORTS_DIR / f"{owner_code.lower()}_email_summary.txt"
     out_path.write_text(email_text, encoding='utf-8')
-    logger.info(f"FLTR email summary saved: {out_path}")
+    logger.info(f"{owner_code} email summary saved: {out_path}")
 
     print(email_text)
     return email_text
@@ -236,4 +254,5 @@ def generate_fltr_email(report_date_str=None):
 
 if __name__ == "__main__":
     date_arg = sys.argv[1] if len(sys.argv) > 1 else None
-    generate_fltr_email(date_arg)
+    owner_arg = sys.argv[2] if len(sys.argv) > 2 else 'FLTR'
+    generate_owner_email(owner_arg, date_arg)

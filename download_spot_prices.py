@@ -50,7 +50,6 @@ def download_spot_prices(year_month):
                 'DateFrom': start_date_str,
                 'DateTo': end_date_str,
                 'POC': node_code,
-                '_rsdr': 'L4390D',
                 '_si': 'v|3'
             }
             

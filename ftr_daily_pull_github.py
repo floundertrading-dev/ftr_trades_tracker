@@ -236,6 +236,26 @@ def detect_changes(df_today, df_yesterday):
                 'MW_Current': curr_mw, 'Notes': f'Bought {mw_bought:.1f}MW'
             })
             logger.info(f"BUY: {ftr_id} - {mw_bought}MW")
+        
+        # SETTLEMENT (AcquisitionCost changed but MW stayed the same)
+        elif abs(curr_acq - prev_acq) > 0.01:  # Allow for floating point tolerance
+            settlement_change = curr_acq - prev_acq
+            trading_periods = calculate_trading_periods(
+                row.get('StartDate_curr'), row.get('EndDate_curr'))
+            
+            changes.append({
+                'SnapshotDate': today_date, 'TransactionType': 'SETTLEMENT',
+                'FTR_ID': ftr_id, 'Source': row.get('Source_curr'),
+                'Sink': row.get('Sink_curr'), 'HedgeType': row.get('HedgeType_curr'),
+                'StartDate': row.get('StartDate_curr'), 'EndDate': row.get('EndDate_curr'),
+                'MW_Previous': prev_mw, 'MW_Current': curr_mw,
+                'OriginalAcquisitionCost': orig_cost,
+                'AcquisitionCost_Previous': prev_acq, 'AcquisitionCost_Current': curr_acq,
+                'SettlementChange': settlement_change,
+                'TradingPeriods': trading_periods,
+                'Notes': f'Daily settlement: ${settlement_change:,.2f}'
+            })
+            logger.info(f"SETTLEMENT: {ftr_id} - ${settlement_change:,.2f}")
     
     return pd.DataFrame(changes)
 

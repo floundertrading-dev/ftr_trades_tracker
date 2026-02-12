@@ -68,9 +68,88 @@ def load_ledger():
 # =============================================================================
 # DATA PROCESSING
 # =============================================================================
+# DATA PROCESSING
+# =============================================================================
 
-def calculate_position_summary(df):
-    """Calculate summary metrics for each FTR position."""
+def load_spot_prices_mtd(report_date_str):
+    """Load spot prices for the month-to-date from cache."""
+    try:
+        # Get the month from report date (YYYYMMDD format)
+        year_month = report_date_str[:6]  # YYYYMM
+        spot_file = BASE_DIR / "spot_cache" / f"spot_{year_month}.csv"
+        
+        if not spot_file.exists():
+            logger.warning(f"Spot price file not found: {spot_file}")
+            return None, None
+        
+        spot_df = pd.read_csv(spot_file)
+        spot_df['Trading date'] = pd.to_datetime(spot_df['Trading date'], dayfirst=True)
+        
+        # Get the report date (this is the date we're reporting FOR)
+        # We want spot prices from the report date itself, not the day before
+        report_date = datetime.strptime(report_date_str, '%Y%m%d')
+        
+        # Get first day of the month
+        month_start = datetime(report_date.year, report_date.month, 1)
+        
+        # Filter to report date for daily P&L
+        report_day_spot = spot_df[spot_df['Trading date'] == report_date].copy()
+        
+        # Filter to MTD (from month start to report date) for MTD P&L
+        mtd_spot = spot_df[(spot_df['Trading date'] >= month_start) & 
+                           (spot_df['Trading date'] <= report_date)].copy()
+        
+        # Calculate daily average for report date
+        daily_avg = None
+        if not report_day_spot.empty:
+            daily_avg = report_day_spot.groupby('Point of connection')['$/MWh'].mean().reset_index()
+            daily_avg['Node'] = daily_avg['Point of connection'].str.replace('2201', '')
+        
+        # Calculate MTD data for each node
+        mtd_data = None
+        if not mtd_spot.empty:
+            # For obligations: simple average of price differences
+            mtd_avg = mtd_spot.groupby('Point of connection')['$/MWh'].mean().reset_index()
+            mtd_avg['Node'] = mtd_avg['Point of connection'].str.replace('2201', '')
+            
+            # For options: need to calculate max(0, diff) at half-hourly level then average
+            # Group by date and node for daily calcs
+            mtd_data = {
+                'avg': mtd_avg,
+                'spot_df': mtd_spot,
+                'days_count': (report_date - month_start).days + 1
+            }
+        
+        if daily_avg is not None:
+            logger.info(f"Loaded spot prices - Report date: {report_date.date()}, MTD days: {mtd_data['days_count'] if mtd_data else 0}")
+        
+        return daily_avg, mtd_data
+        
+    except Exception as e:
+        logger.error(f"Error loading spot prices: {e}")
+        return None, None
+
+
+def calculate_position_summary(df, report_date_str):
+    """
+    Calculate summary metrics for each FTR position.
+    
+    Uses the same logic as AllData notebook:
+    - Options: max(0, sink - source) at each half-hourly trading period, then average
+    - Obligations: (sink - source) simple average across trading periods
+    - Profit: (settlement_price - price_paid) * MW * num_trading_periods * 0.5
+    """
+    # Load spot data
+    daily_avg, mtd_data = load_spot_prices_mtd(report_date_str)
+    
+    # Get raw spot data for half-hourly calculations
+    report_date = datetime.strptime(report_date_str, '%Y%m%d')
+    month_start = datetime(report_date.year, report_date.month, 1)
+    
+    spot_df = None
+    if mtd_data is not None:
+        spot_df = mtd_data['spot_df']
+    
     summary = []
     
     for _, row in df.iterrows():
@@ -85,19 +164,71 @@ def calculate_position_summary(df):
         acq_cost = float(row.get('AcquisitionCost', 0) or 0)
         orig_cost = float(row.get('OriginalAcquisitionCost', 0) or 0)
         
-        # Calculate days in contract
+        source_node = f"{source}2201"
+        sink_node = f"{sink}2201"
+        
+        # Calculate days in contract and settlement period
         try:
             start = pd.to_datetime(row.get('StartDate'), dayfirst=True)
             end = pd.to_datetime(row.get('EndDate'), dayfirst=True)
             days = (end - start).days + 1
+            settlement_period = start.strftime('%y%m')
         except:
             days = 0
+            settlement_period = ''
         
-        # Settlement approximation (AcquisitionCost change represents settlement)
-        total_settlement = orig_cost - acq_cost if acq_cost != orig_cost else 0
+        daily_pnl = 0
+        mtd_pnl = 0
+        
+        if spot_df is not None:
+            # --- Daily P&L (report date only) ---
+            day_spot = spot_df[spot_df['Trading date'] == report_date]
+            source_tp = day_spot[day_spot['Point of connection'] == source_node][['Trading period', '$/MWh']].copy()
+            sink_tp = day_spot[day_spot['Point of connection'] == sink_node][['Trading period', '$/MWh']].copy()
+            
+            if not source_tp.empty and not sink_tp.empty:
+                source_tp.columns = ['Trading period', 'Source_Price']
+                sink_tp.columns = ['Trading period', 'Sink_Price']
+                tp_merged = source_tp.merge(sink_tp, on='Trading period')
+                tp_merged['Price_Diff'] = tp_merged['Sink_Price'] - tp_merged['Source_Price']
+                
+                if hedge_type == 'OPT':
+                    tp_merged['Settlement'] = tp_merged['Price_Diff'].clip(lower=0)
+                else:
+                    tp_merged['Settlement'] = tp_merged['Price_Diff']
+                
+                daily_settlement = tp_merged['Settlement'].mean()
+                daily_pnl = (daily_settlement - price) * mw * len(tp_merged) * 0.5
+            
+            # --- MTD P&L (all days from month start to report date) ---
+            trading_dates = sorted(spot_df['Trading date'].unique())
+            for trade_date in trading_dates:
+                td_spot = spot_df[spot_df['Trading date'] == trade_date]
+                src_tp = td_spot[td_spot['Point of connection'] == source_node][['Trading period', '$/MWh']].copy()
+                snk_tp = td_spot[td_spot['Point of connection'] == sink_node][['Trading period', '$/MWh']].copy()
+                
+                if src_tp.empty or snk_tp.empty:
+                    continue
+                
+                src_tp.columns = ['Trading period', 'Source_Price']
+                snk_tp.columns = ['Trading period', 'Sink_Price']
+                tp_m = src_tp.merge(snk_tp, on='Trading period')
+                tp_m['Price_Diff'] = tp_m['Sink_Price'] - tp_m['Source_Price']
+                
+                if hedge_type == 'OPT':
+                    tp_m['Settlement'] = tp_m['Price_Diff'].clip(lower=0)
+                else:
+                    tp_m['Settlement'] = tp_m['Price_Diff']
+                
+                day_settlement = tp_m['Settlement'].mean()
+                mtd_pnl += (day_settlement - price) * mw * len(tp_m) * 0.5
+        
+        # Total settlement is the change in acquisition cost (what's actually been settled)
+        total_settlement = orig_cost - acq_cost
         
         summary.append({
             'FTR_ID': ftr_id,
+            'Settlement_Period': settlement_period,
             'Route': route,
             'HedgeType': hedge_type,
             'MW': mw,
@@ -105,10 +236,10 @@ def calculate_position_summary(df):
             'Owner': owner,
             'Total_Settlement': total_settlement,
             'Total_Cost': orig_cost,
-            'MTD_PnL': total_settlement - orig_cost if mw > 0 else 0,
+            'MTD_PnL': mtd_pnl,
             'Days': days,
-            'Latest_Day_PnL': 0,  # Would need spot price data
-            'PnL_Per_MW': (total_settlement - orig_cost) / mw if mw > 0 else 0
+            'Latest_Day_PnL': daily_pnl,
+            'PnL_Per_MW': mtd_pnl / mw if mw > 0 else 0
         })
     
     return pd.DataFrame(summary)
@@ -298,16 +429,16 @@ def generate_email_summary(position_df, owner_df, report_date, report_filename):
     
     # Save summary
     summary_path = REPORTS_DIR / "email_summary.txt"
-    summary_path.write_text(summary)
+    summary_path.write_text(summary, encoding='utf-8')
     logger.info(f"Email summary saved: {summary_path}")
     
     return summary
 
-
-# =============================================================================
-# MAIN
-# =============================================================================
-
+    logger.info(f"Positions in snapshot: {len(snapshot_df)}")
+    
+    # Process data
+    position_df = calculate_position_summary(snapshot_df, report_date)
+    owner_df = calculate_owner_summary(position_df)
 def generate_daily_report():
     """Main function to generate the daily report."""
     logger.info("=" * 50)
@@ -321,7 +452,7 @@ def generate_daily_report():
     logger.info(f"Positions in snapshot: {len(snapshot_df)}")
     
     # Process data
-    position_df = calculate_position_summary(snapshot_df)
+    position_df = calculate_position_summary(snapshot_df, report_date)
     owner_df = calculate_owner_summary(position_df)
     activity_df = get_recent_activity(ledger_df)
     

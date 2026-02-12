@@ -60,9 +60,7 @@ jobs:
           fi
           if [ -f "ftr_tracking/reports/owner_portfolio_email.txt" ]; then
             OWNER_BODY=$(cat ftr_tracking/reports/owner_portfolio_email.txt)
-            EMAIL_BODY="${EMAIL_BODY}
-
-${OWNER_BODY}"
+            EMAIL_BODY=$(printf "%s\n\n%s" "$EMAIL_BODY" "$OWNER_BODY")
           fi
           if [ -z "$EMAIL_BODY" ]; then
             EMAIL_BODY="FTR Daily Report attached."

@@ -380,7 +380,7 @@ def create_excel_report(position_df, activity_df, owner_df, report_date):
 # EMAIL SUMMARY
 # =============================================================================
 
-def generate_email_summary(position_df, owner_df, report_date, report_filename):
+def generate_email_summary(report_date, report_filename):
     """Generate a text summary for email."""
     
     # Format date nicely
@@ -389,8 +389,6 @@ def generate_email_summary(position_df, owner_df, report_date, report_filename):
         date_formatted = date_obj.strftime('%B %d, %Y')
     except:
         date_formatted = report_date
-    
-    total_positions = len(position_df)
     
     summary = f"""FTR Daily Report - {date_formatted}
 ========================================
@@ -404,12 +402,6 @@ def generate_email_summary(position_df, owner_df, report_date, report_filename):
     logger.info(f"Email summary saved: {summary_path}")
     
     return summary
-
-    logger.info(f"Positions in snapshot: {len(snapshot_df)}")
-    
-    # Process data
-    position_df = calculate_position_summary(snapshot_df, report_date)
-    owner_df = calculate_owner_summary(position_df)
 def generate_daily_report():
     """Main function to generate the daily report."""
     logger.info("=" * 50)
@@ -432,7 +424,7 @@ def generate_daily_report():
     
     # Generate email summary
     summary = generate_email_summary(
-        position_df, owner_df, report_date, report_path.name
+        report_date, report_path.name
     )
     
     print(summary)

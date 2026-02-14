@@ -184,6 +184,9 @@ def generate_owner_email(owner_code, snapshot_df, spot_pivot, trading_dates, rep
         else:
             settlement_return_pct = -100.0 if price > 0 else 0.0
 
+        # Dollar impact: settlement return % applied to investment
+        settlement_dollar_impact = (settlement_return_pct / 100) * investment
+
         total_invested += investment
         total_daily += daily_profit
         total_mtd += mtd_profit
@@ -206,6 +209,7 @@ def generate_owner_email(owner_code, snapshot_df, spot_pivot, trading_dates, rep
             'mtd_profit': mtd_profit,
             'trading_days': trading_days,
             'settlement_return_pct': settlement_return_pct,
+            'settlement_dollar_impact': settlement_dollar_impact,
         })
 
     # Sort by investment (largest first)
@@ -226,6 +230,8 @@ def generate_owner_email(owner_code, snapshot_df, spot_pivot, trading_dates, rep
     roi_icon = "📈" if total_mtd >= 0 else "📉"
     lines.append(f"  {roi_icon} MTD P&L: ${total_mtd:>10,.2f}  ({pct_return:+.1f}%)")
     lines.append(f"  💰 Total Invested:  ${total_invested:>10,.2f}")
+    # Note: total_settlement_impact computed after position loop, inserted here via deferred join
+    lines.append("__SETTL_IMPACT_PLACEHOLDER__")
     lines.append(f"  📅 Trading Days: {trading_days}")
     lines.append(f"  ✅ Winners: {wins}   ❌ Losers: {losses}   ({len(position_data)} positions)")
     lines.append("")
@@ -233,6 +239,8 @@ def generate_owner_email(owner_code, snapshot_df, spot_pivot, trading_dates, rep
     lines.append("")
 
     # Build position blocks
+    total_settlement_impact = sum(p['settlement_dollar_impact'] for p in position_data)
+
     position_blocks = []
     for pos in position_data:
         block = []
@@ -243,7 +251,7 @@ def generate_owner_email(owner_code, snapshot_df, spot_pivot, trading_dates, rep
         block.append(f"     MTD Avg Settl.:  ${pos['mtd_settlement']:>10.2f} /MWh")
         settl_pct = pos['settlement_return_pct']
         settl_icon = '🟢' if settl_pct >= 0 else '🔴'
-        block.append(f"     Settl. Return:   {settl_icon} {settl_pct:>+9.1f}%")
+        block.append(f"     Settl. Return:   {settl_icon} {settl_pct:>+9.1f}%  (${pos['settlement_dollar_impact']:>+11,.2f})")
         block.append(f"     Today's P&L:     ${pos['daily_profit']:>10,.2f}")
         block.append(f"     MTD P&L:         ${pos['mtd_profit']:>10,.2f}")
         position_blocks.append("\n".join(block))
@@ -253,12 +261,18 @@ def generate_owner_email(owner_code, snapshot_df, spot_pivot, trading_dates, rep
     lines.append("─" * 50)
     lines.append(f"  💼 Portfolio Total")
     lines.append(f"     Total Invested:  ${total_invested:>10,.2f}")
+    lines.append(f"     Settl. Impact:   ${total_settlement_impact:>+11,.2f}")
     lines.append(f"     Today's P&L:     ${total_daily:>10,.2f}")
     lines.append(f"     MTD P&L:         ${total_mtd:>10,.2f}  ({pct_return:+.1f}%)")
     lines.append("─" * 50)
     lines.append("")
 
-    return "\n".join(lines)
+    # Replace settlement impact placeholder now that we have the total
+    settl_impact_icon = '🟢' if total_settlement_impact >= 0 else '🔴'
+    settl_impact_line = f"  {settl_impact_icon} Settl. Impact:    ${total_settlement_impact:>+11,.2f}"
+    text = "\n".join(lines)
+    text = text.replace("__SETTL_IMPACT_PLACEHOLDER__", settl_impact_line)
+    return text
 
 
 def generate_all_owner_emails(report_date_str=None, owners=None):

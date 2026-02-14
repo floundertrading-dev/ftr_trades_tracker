@@ -391,41 +391,12 @@ def generate_email_summary(position_df, owner_df, report_date, report_filename):
         date_formatted = report_date
     
     total_positions = len(position_df)
-    total_mtd_pnl = position_df['MTD_PnL'].sum() if not position_df.empty else 0
-    latest_day_pnl = position_df['Latest_Day_PnL'].sum() if not position_df.empty else 0
-    
-    # Top/Bottom performers by route
-    if not position_df.empty:
-        route_pnl = position_df.groupby(['Route', 'HedgeType'])['MTD_PnL'].sum().reset_index()
-        route_pnl = route_pnl.sort_values('MTD_PnL', ascending=False)
-        
-        top_3 = route_pnl.head(3)
-        bottom_3 = route_pnl.tail(3).sort_values('MTD_PnL')
-    else:
-        top_3 = pd.DataFrame()
-        bottom_3 = pd.DataFrame()
     
     summary = f"""FTR Daily Report - {date_formatted}
 ========================================
 
-📊 POSITION PERFORMANCE
-   Total Positions: {total_positions:,}
-   Latest Day P&L: ${latest_day_pnl:,.2f}
-   MTD P&L: ${total_mtd_pnl:,.2f}
-
+📎 Full report attached: {report_filename}
 """
-    
-    if not top_3.empty:
-        summary += "   🟢 Top 3 Performers:\n"
-        for _, row in top_3.iterrows():
-            summary += f"      {row['Route']} ({row['HedgeType']}): ${row['MTD_PnL']:,.0f}\n"
-    
-    if not bottom_3.empty:
-        summary += "   🔴 Bottom 3 Performers:\n"
-        for _, row in bottom_3.iterrows():
-            summary += f"      {row['Route']} ({row['HedgeType']}): ${row['MTD_PnL']:,.0f}\n"
-    
-    summary += f"\n📎 Full report attached: {report_filename}\n"
     
     # Save summary
     summary_path = REPORTS_DIR / "email_summary.txt"

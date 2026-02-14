@@ -13,6 +13,7 @@ Output: ftr_tracking/reports/{owner}_email_summary.txt
 """
 
 import sys
+import numpy as np
 import pandas as pd
 from pathlib import Path
 from datetime import datetime
@@ -59,90 +60,90 @@ def load_spot_prices(year_month):
     return spot_df
 
 
-def calculate_daily_and_mtd(position, spot_df, report_date):
+def build_settlement_table(spot_df, report_date):
     """
-    Calculate daily return and MTD return for a single position.
-
-    Uses half-hourly trading period logic:
-    - Options: max(0, sink - source) at each period, then average
-    - Obligations: (sink - source) straight
-    - Profit per day = (avg_settlement - price_paid) * MW * num_periods * 0.5
+    Pre-compute a pivot table of spot prices for vectorized lookups.
+    Returns pivot (rows=date/period, cols=node), node list, and trading dates.
     """
-    source_node = f"{position['Source']}2201"
-    sink_node = f"{position['Sink']}2201"
-    hedge_type = position['HedgeType']
-    mw = float(position['MW'] or 0)
-    price_paid = float(position['Price'] or 0)
-
     month_start = datetime(report_date.year, report_date.month, 1)
-
-    # Filter spot data to MTD
     mtd_spot = spot_df[(spot_df['Trading date'] >= month_start) &
                        (spot_df['Trading date'] <= report_date)].copy()
 
+    pivot = mtd_spot.pivot_table(
+        index=['Trading date', 'Trading period'],
+        columns='Point of connection',
+        values='$/MWh',
+        aggfunc='first'
+    )
+
+    nodes = pivot.columns.tolist()
     trading_dates = sorted(mtd_spot['Trading date'].unique())
+    return pivot, nodes, trading_dates
 
-    daily_profit = 0.0
-    mtd_profit = 0.0
-    daily_settlement = 0.0
-    num_trading_days = 0
-    settlement_sum = 0.0  # sum of daily settlements for MTD average
 
-    for trade_date in trading_dates:
-        day_spot = mtd_spot[mtd_spot['Trading date'] == trade_date]
+def calculate_positions_vectorized(live_df, spot_pivot, trading_dates, report_date):
+    """
+    Calculate daily and MTD settlement for all positions using vectorized
+    operations grouped by (source, sink, hedge_type) to avoid redundant work.
+    """
+    results = []
+    grouped = live_df.groupby(['Source', 'Sink', 'HedgeType'])
 
-        source_tp = day_spot[day_spot['Point of connection'] == source_node][['Trading period', '$/MWh']].copy()
-        sink_tp = day_spot[day_spot['Point of connection'] == sink_node][['Trading period', '$/MWh']].copy()
+    for (source, sink, hedge_type), group in grouped:
+        source_node = f"{source}2201"
+        sink_node = f"{sink}2201"
 
-        if source_tp.empty or sink_tp.empty:
+        if source_node not in spot_pivot.columns or sink_node not in spot_pivot.columns:
+            for idx in group.index:
+                results.append((idx, 0.0, 0.0, 0.0, 0.0, 0))
             continue
 
-        source_tp.columns = ['Trading period', 'Source_Price']
-        sink_tp.columns = ['Trading period', 'Sink_Price']
-
-        tp_merged = source_tp.merge(sink_tp, on='Trading period')
-        if tp_merged.empty:
-            continue
-
-        tp_merged['Price_Diff'] = tp_merged['Sink_Price'] - tp_merged['Source_Price']
-
+        # Vectorized price diff for all dates/periods at once
+        diff = spot_pivot[sink_node] - spot_pivot[source_node]
         if hedge_type == 'OPT':
-            tp_merged['Settlement'] = tp_merged['Price_Diff'].clip(lower=0)
-        else:
-            tp_merged['Settlement'] = tp_merged['Price_Diff']
+            diff = diff.clip(lower=0)
+        diff = diff.dropna()
 
-        day_settlement = tp_merged['Settlement'].mean()
-        day_profit = (day_settlement - price_paid) * mw * len(tp_merged) * 0.5
+        if diff.empty:
+            for idx in group.index:
+                results.append((idx, 0.0, 0.0, 0.0, 0.0, 0))
+            continue
 
-        mtd_profit += day_profit
-        settlement_sum += day_settlement
-        num_trading_days += 1
+        # Daily aggregation
+        daily = diff.groupby('Trading date').agg(['mean', 'count'])
+        daily.columns = ['avg_settlement', 'num_periods']
 
-        # If this is the report date, capture daily figures
-        if trade_date == pd.Timestamp(report_date):
-            daily_profit = day_profit
-            daily_settlement = day_settlement
+        num_trading_days = len(daily)
+        mtd_avg_settlement = daily['avg_settlement'].mean() if num_trading_days > 0 else 0.0
 
-    mtd_settlement = settlement_sum / num_trading_days if num_trading_days > 0 else 0.0
+        report_ts = pd.Timestamp(report_date)
+        daily_settlement = daily.loc[report_ts, 'avg_settlement'] if report_ts in daily.index else 0.0
 
-    return {
-        'daily_settlement': daily_settlement,
-        'daily_profit': daily_profit,
-        'mtd_profit': mtd_profit,
-        'mtd_settlement': mtd_settlement,
-        'trading_days': num_trading_days,
-    }
+        # Per-position profit (each has its own MW and price)
+        for idx in group.index:
+            pos = live_df.loc[idx]
+            mw = float(pos['MW'] or 0)
+            price_paid = float(pos['Price'] or 0)
+
+            mtd_profit = ((daily['avg_settlement'] - price_paid) * mw * daily['num_periods'] * 0.5).sum()
+
+            if report_ts in daily.index:
+                day_row = daily.loc[report_ts]
+                daily_profit = (day_row['avg_settlement'] - price_paid) * mw * day_row['num_periods'] * 0.5
+            else:
+                daily_profit = 0.0
+
+            results.append((idx, daily_settlement, daily_profit, mtd_profit, mtd_avg_settlement, num_trading_days))
+
+    return results
 
 
-def generate_owner_email(owner_code, snapshot_df, spot_df, report_date):
+def generate_owner_email(owner_code, snapshot_df, spot_pivot, trading_dates, report_date):
     """Generate email text for a single owner. Returns the text or None."""
-    year_month = report_date.strftime('%Y%m')
-
     # Get owner positions with start date in current month
     owner_positions = snapshot_df[snapshot_df['CurrentOwner'] == owner_code].copy()
     owner_positions['_StartDate'] = pd.to_datetime(owner_positions['StartDate'], dayfirst=True)
 
-    # Filter to positions starting in the report month
     month_start = datetime(report_date.year, report_date.month, 1)
     if report_date.month == 12:
         month_end = datetime(report_date.year + 1, 1, 1)
@@ -158,7 +159,9 @@ def generate_owner_email(owner_code, snapshot_df, spot_df, report_date):
 
     logger.info(f"Live {owner_code} positions this month: {len(live)}")
 
-    # ── Calculate all positions ───────────────────────────────────────────
+    # ── Calculate all positions (vectorized) ───────────────────────────────
+
+    results = calculate_positions_vectorized(live, spot_pivot, trading_dates, report_date)
 
     total_invested = 0.0
     total_daily = 0.0
@@ -167,18 +170,25 @@ def generate_owner_email(owner_code, snapshot_df, spot_df, report_date):
     losses = 0
     position_data = []
 
-    for _, pos in live.iterrows():
-        result = calculate_daily_and_mtd(pos, spot_df, report_date)
-
+    for (idx, daily_settlement, daily_profit, mtd_profit, mtd_settlement, trading_days) in results:
+        pos = live.loc[idx]
         investment = float(pos['OriginalAcquisitionCost'] or 0)
         mw = float(pos['MW'] or 0)
         price = float(pos['Price'] or 0)
 
-        total_invested += investment
-        total_daily += result['daily_profit']
-        total_mtd += result['mtd_profit']
+        # Settlement return %: expressed as gain/loss vs price paid
+        # e.g. MTD settl = $5, price = $10 → -50.0% (settling 50% below cost)
+        # e.g. MTD settl = $12, price = $10 → +20.0% (settling 20% above cost)
+        if price > 0 and mtd_settlement > 0:
+            settlement_return_pct = ((mtd_settlement - price) / price) * 100
+        else:
+            settlement_return_pct = -100.0 if price > 0 else 0.0
 
-        if result['mtd_profit'] >= 0:
+        total_invested += investment
+        total_daily += daily_profit
+        total_mtd += mtd_profit
+
+        if mtd_profit >= 0:
             wins += 1
         else:
             losses += 1
@@ -190,11 +200,12 @@ def generate_owner_email(owner_code, snapshot_df, spot_df, report_date):
             'label': label,
             'investment': investment,
             'price': price,
-            'daily_settlement': result['daily_settlement'],
-            'mtd_settlement': result['mtd_settlement'],
-            'daily_profit': result['daily_profit'],
-            'mtd_profit': result['mtd_profit'],
-            'trading_days': result['trading_days']
+            'daily_settlement': daily_settlement,
+            'mtd_settlement': mtd_settlement,
+            'daily_profit': daily_profit,
+            'mtd_profit': mtd_profit,
+            'trading_days': trading_days,
+            'settlement_return_pct': settlement_return_pct,
         })
 
     # Sort by investment (largest first)
@@ -213,7 +224,7 @@ def generate_owner_email(owner_code, snapshot_df, spot_df, report_date):
 
     # Summary header
     roi_icon = "📈" if total_mtd >= 0 else "📉"
-    lines.append(f"  {roi_icon} MTD Return: ${total_mtd:>10,.2f}  ({pct_return:+.1f}%)")
+    lines.append(f"  {roi_icon} MTD P&L: ${total_mtd:>10,.2f}  ({pct_return:+.1f}%)")
     lines.append(f"  💰 Total Invested:  ${total_invested:>10,.2f}")
     lines.append(f"  📅 Trading Days: {trading_days}")
     lines.append(f"  ✅ Winners: {wins}   ❌ Losers: {losses}   ({len(position_data)} positions)")
@@ -230,8 +241,11 @@ def generate_owner_email(owner_code, snapshot_df, spot_df, report_date):
         block.append(f"     Price Paid:      ${pos['price']:>10.2f} /MWh")
         block.append(f"     Today's Settl.:  ${pos['daily_settlement']:>10.2f} /MWh")
         block.append(f"     MTD Avg Settl.:  ${pos['mtd_settlement']:>10.2f} /MWh")
-        block.append(f"     Today's Return:  ${pos['daily_profit']:>10,.2f}")
-        block.append(f"     MTD Return:      ${pos['mtd_profit']:>10,.2f}")
+        settl_pct = pos['settlement_return_pct']
+        settl_icon = '🟢' if settl_pct >= 0 else '🔴'
+        block.append(f"     Settl. Return:   {settl_icon} {settl_pct:>+9.1f}%")
+        block.append(f"     Today's P&L:     ${pos['daily_profit']:>10,.2f}")
+        block.append(f"     MTD P&L:         ${pos['mtd_profit']:>10,.2f}")
         position_blocks.append("\n".join(block))
 
     lines.append("\n\n".join(position_blocks))
@@ -239,8 +253,8 @@ def generate_owner_email(owner_code, snapshot_df, spot_df, report_date):
     lines.append("─" * 50)
     lines.append(f"  💼 Portfolio Total")
     lines.append(f"     Total Invested:  ${total_invested:>10,.2f}")
-    lines.append(f"     Today's Return:  ${total_daily:>10,.2f}")
-    lines.append(f"     MTD Return:      ${total_mtd:>10,.2f}  ({pct_return:+.1f}%)")
+    lines.append(f"     Today's P&L:     ${total_daily:>10,.2f}")
+    lines.append(f"     MTD P&L:         ${total_mtd:>10,.2f}  ({pct_return:+.1f}%)")
     lines.append("─" * 50)
     lines.append("")
 
@@ -262,16 +276,19 @@ def generate_all_owner_emails(report_date_str=None, owners=None):
 
     logger.info(f"Report date: {report_date.date()}")
 
-    # Load spot prices once
+    # Load spot prices once and build pivot table
     spot_df = load_spot_prices(year_month)
     if spot_df is None:
         logger.error("Spot price data not available.")
         return
 
+    spot_pivot, nodes, trading_dates = build_settlement_table(spot_df, report_date)
+    logger.info(f"Spot pivot: {len(spot_pivot)} rows, {len(nodes)} nodes, {len(trading_dates)} trading days")
+
     # Generate each owner section
     sections = []
     for owner in owners:
-        section = generate_owner_email(owner, snapshot_df, spot_df, report_date)
+        section = generate_owner_email(owner, snapshot_df, spot_pivot, trading_dates, report_date)
         if section:
             sections.append(section)
 
@@ -282,9 +299,9 @@ def generate_all_owner_emails(report_date_str=None, owners=None):
     out_path.write_text(combined, encoding='utf-8')
     logger.info(f"Combined owner email saved: {out_path}")
 
-    # Also save individual files for backwards compatibility
+    # Also save individual files
     for owner in owners:
-        section = generate_owner_email(owner, snapshot_df, spot_df, report_date)
+        section = generate_owner_email(owner, snapshot_df, spot_pivot, trading_dates, report_date)
         if section:
             ind_path = REPORTS_DIR / f"{owner.lower()}_email_summary.txt"
             ind_path.write_text(section, encoding='utf-8')

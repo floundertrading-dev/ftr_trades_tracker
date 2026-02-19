@@ -1,10 +1,10 @@
-FLTR Portfolio Update — February 17, 2026
+FLTR Portfolio Update — February 19, 2026
 ══════════════════════════════════════════════════
 
-  📈 MTD P&L: $     16.83  (+2.0%)
+  📈 MTD P&L: $     48.37  (+5.7%)
   💰 Total Invested:  $    844.03
-  🟢 Settl. Impact:    $     +35.68
-  📅 Trading Days: 17
+  🟢 Settl. Impact:    $     +82.32
+  📅 Trading Days: 18
   ✅ Winners: 2   ❌ Losers: 1   (3 positions)
 
 ──────────────────────────────────────────────────
@@ -12,34 +12,34 @@ FLTR Portfolio Update — February 17, 2026
   📌 BEN→ISL (OPT) 0.2MW @ $2.41/MWh
      Investment:      $    323.90
      Price Paid:      $      2.41 /MWh
-     Today's Settl.:  $      2.88 /MWh
-     MTD Avg Settl.:  $      1.70 /MWh
-     Settl. Return:   🔴     -29.6%  ($     -95.83)
-     Today's P&L:     $      1.59
-     MTD P&L:         $    -58.84
+     Today's Settl.:  $      0.00 /MWh
+     MTD Avg Settl.:  $      1.82 /MWh
+     Settl. Return:   🔴     -24.5%  ($     -79.46)
+     Today's P&L:     $      0.00
+     MTD P&L:         $    -52.19
 
   📌 INV→KIK (OPT) 0.3MW @ $1.43/MWh
      Investment:      $    288.29
      Price Paid:      $      1.43 /MWh
-     Today's Settl.:  $      2.45 /MWh
-     MTD Avg Settl.:  $      1.65 /MWh
-     Settl. Return:   🟢     +15.2%  ($     +43.92)
-     Today's P&L:     $      5.21
-     MTD P&L:         $     24.52
+     Today's Settl.:  $      0.00 /MWh
+     MTD Avg Settl.:  $      1.75 /MWh
+     Settl. Return:   🟢     +22.5%  ($     +64.77)
+     Today's P&L:     $      0.00
+     MTD P&L:         $     39.38
 
   📌 INV→ISL (OPT) 0.5MW @ $0.69/MWh
      Investment:      $    231.84
      Price Paid:      $      0.69 /MWh
-     Today's Settl.:  $      1.27 /MWh
-     MTD Avg Settl.:  $      0.95 /MWh
-     Settl. Return:   🟢     +37.8%  ($     +87.59)
-     Today's P&L:     $      4.95
-     MTD P&L:         $     51.14
+     Today's Settl.:  $      0.00 /MWh
+     MTD Avg Settl.:  $      0.98 /MWh
+     Settl. Return:   🟢     +41.8%  ($     +97.01)
+     Today's P&L:     $      0.00
+     MTD P&L:         $     61.18
 
 ──────────────────────────────────────────────────
   💼 Portfolio Total
      Total Invested:  $    844.03
-     Settl. Impact:   $     +35.68
-     Today's P&L:     $     11.74
-     MTD P&L:         $     16.83  (+2.0%)
+     Settl. Impact:   $     +82.32
+     Today's P&L:     $      0.00
+     MTD P&L:         $     48.37  (+5.7%)
 ──────────────────────────────────────────────────

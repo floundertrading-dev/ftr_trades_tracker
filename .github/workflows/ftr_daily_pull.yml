@@ -2,7 +2,7 @@ name: FTR Daily Pull & Report
 
 on:
   schedule:
-    - cron: '0 17 * * *'
+    - cron: '0 20 * * *'
   workflow_dispatch:
 
 permissions:

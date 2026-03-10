@@ -25,7 +25,7 @@ jobs:
       
       - name: Install dependencies
         run: |
-          pip install boto3 requests pandas numpy openpyxl
+          pip install boto3 requests pandas numpy
       
       - name: Run FTR Daily Pull
         env:
@@ -43,16 +43,7 @@ jobs:
       - name: Generate Daily Report
         id: report
         run: |
-          python ftr_report_generator_daily.py
           python generate_fltr_email.py
-          REPORT_FILE=$(ls -t ftr_tracking/reports/FTR_Daily_Report_*.xlsx 2>/dev/null | head -1)
-          if [ -n "$REPORT_FILE" ]; then
-            echo "report_file=$REPORT_FILE" >> "$GITHUB_OUTPUT"
-            echo "report_name=$(basename $REPORT_FILE)" >> "$GITHUB_OUTPUT"
-          else
-            echo "report_file=" >> "$GITHUB_OUTPUT"
-            echo "report_name=" >> "$GITHUB_OUTPUT"
-          fi
           # Build email body: main summary + owner portfolios
           EMAIL_BODY=""
           if [ -f "ftr_tracking/reports/email_summary.txt" ]; then
@@ -63,7 +54,7 @@ jobs:
             EMAIL_BODY=$(printf "%s\n\n%s" "$EMAIL_BODY" "$OWNER_BODY")
           fi
           if [ -z "$EMAIL_BODY" ]; then
-            EMAIL_BODY="FTR Daily Report attached."
+            EMAIL_BODY="FTR Daily Report - $(date +'%Y-%m-%d')"
           fi
           echo "email_body<<EOF" >> "$GITHUB_OUTPUT"
           echo "$EMAIL_BODY" >> "$GITHUB_OUTPUT"
@@ -80,7 +71,6 @@ jobs:
           git push
       
       - name: Send Daily Report Email
-        if: steps.report.outputs.report_file != ''
         uses: dawidd6/action-send-mail@v3
         with:
           server_address: smtp.gmail.com
@@ -88,11 +78,10 @@ jobs:
           secure: true
           username: ${{ secrets.EMAIL_USERNAME }}
           password: ${{ secrets.EMAIL_PASSWORD }}
-          subject: "FTR Daily Report - ${{ steps.report.outputs.report_name }}"
+          subject: "FTR Daily Report - $(date +'%Y-%m-%d')"
           to: ${{ secrets.EMAIL_TO }}
           from: FTR Bot <${{ secrets.EMAIL_USERNAME }}>
           body: ${{ steps.report.outputs.email_body }}
-          attachments: ${{ steps.report.outputs.report_file }}
       
 
 

@@ -8,11 +8,13 @@ from io import StringIO
 from datetime import datetime, timedelta
 from pathlib import Path
 import sys
+import os
 
 # Configuration
 BASE_URL = 'https://www.emi.ea.govt.nz/Wholesale/Download/DataReport/CSV/CLA3WR'
 NODE_CODES = ['OTA2201', 'WKM2201', 'RDF2201', 'HAY2201', 'KIK2201', 'ISL2201', 'BEN2201', 'INV2201']
 SPOT_CACHE_DIR = Path(__file__).parent / "ftr_tracking" / "spot_cache"
+SPOT_REQUEST_TIMEOUT_SECONDS = int(os.environ.get("SPOT_REQUEST_TIMEOUT_SECONDS", "120"))
 
 SPOT_CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -39,6 +41,7 @@ def download_spot_prices(year_month):
     print(f"Downloading spot prices for {year_month}")
     print(f"Date range: {start_date.date()} to {end_date.date()}")
     print(f"Nodes: {', '.join([n.replace('2201', '') for n in NODE_CODES])}")
+    print(f"Request timeout: {SPOT_REQUEST_TIMEOUT_SECONDS}s")
     print("-" * 60)
     
     # Download spot price data for each node
@@ -55,7 +58,7 @@ def download_spot_prices(year_month):
             
             try:
                 print(f"[{i}/{len(NODE_CODES)}] Downloading {node_code}...", end=' ')
-                response = session.get(BASE_URL, params=params, timeout=30)
+                response = session.get(BASE_URL, params=params, timeout=SPOT_REQUEST_TIMEOUT_SECONDS)
                 
                 if response.status_code == 200:
                     csv_file_in_memory = StringIO(response.text)

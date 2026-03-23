@@ -1,10 +1,10 @@
-FLTR Portfolio Update — March 22, 2026
+FLTR Portfolio Update — March 23, 2026
 ══════════════════════════════════════════════════
 
-  📈 MTD P&L: $  1,342.98  (+95.1%)
+  📈 MTD P&L: $  1,423.26  (+100.7%)
   💰 Total Invested:  $  1,412.86
-  🟢 Settl. Impact:    $  +1,892.39
-  📅 Trading Days: 22
+  🟢 Settl. Impact:    $  +1,918.32
+  📅 Trading Days: 23
   ✅ Winners: 8   ❌ Losers: 1   (9 positions)
 
 ──────────────────────────────────────────────────
@@ -12,74 +12,74 @@ FLTR Portfolio Update — March 22, 2026
   📌 INV→ISL (OPT) 0.5MW @ $0.97/MWh
      Investment:      $    360.84
      Price Paid:      $      0.97 /MWh
-     Today's Settl.:  $      0.19 /MWh
-     MTD Avg Settl.:  $      2.99 /MWh
-     Settl. Return:   🟢    +208.0%  ($    +750.38)
-     Today's P&L:     $     -9.36
-     MTD P&L:         $    532.52
+     Today's Settl.:  $      4.28 /MWh
+     MTD Avg Settl.:  $      3.04 /MWh
+     Settl. Return:   🟢    +213.8%  ($    +771.35)
+     Today's P&L:     $     39.77
+     MTD P&L:         $    572.29
 
   📌 RDF→WKM (OPT) 0.5MW @ $0.70/MWh
      Investment:      $    260.40
      Price Paid:      $      0.70 /MWh
-     Today's Settl.:  $      1.38 /MWh
-     MTD Avg Settl.:  $      1.04 /MWh
-     Settl. Return:   🟢     +49.3%  ($    +128.31)
-     Today's P&L:     $      8.16
-     MTD P&L:         $     91.06
+     Today's Settl.:  $      0.58 /MWh
+     MTD Avg Settl.:  $      1.02 /MWh
+     Settl. Return:   🟢     +46.4%  ($    +120.73)
+     Today's P&L:     $     -1.49
+     MTD P&L:         $     89.57
 
   📌 WKM→HAY (OPT) 0.3MW @ $1.01/MWh
      Investment:      $    225.43
      Price Paid:      $      1.01 /MWh
-     Today's Settl.:  $      8.95 /MWh
-     MTD Avg Settl.:  $      2.92 /MWh
-     Settl. Return:   🟢    +189.0%  ($    +426.17)
-     Today's P&L:     $     57.14
-     MTD P&L:         $    302.45
+     Today's Settl.:  $      3.80 /MWh
+     MTD Avg Settl.:  $      2.96 /MWh
+     Settl. Return:   🟢    +192.8%  ($    +434.69)
+     Today's P&L:     $     20.07
+     MTD P&L:         $    322.51
 
   📌 RDF→BEN (OPT) 0.1MW @ $1.97/MWh
      Investment:      $    146.57
      Price Paid:      $      1.97 /MWh
-     Today's Settl.:  $      7.38 /MWh
+     Today's Settl.:  $      3.87 /MWh
      MTD Avg Settl.:  $      3.85 /MWh
-     Settl. Return:   🟢     +95.2%  ($    +139.60)
-     Today's P&L:     $     12.99
-     MTD P&L:         $     99.07
+     Settl. Return:   🟢     +95.3%  ($    +139.69)
+     Today's P&L:     $      4.57
+     MTD P&L:         $    103.64
 
   📌 ISL→INV (OPT) 0.2MW @ $0.85/MWh
      Investment:      $    126.48
      Price Paid:      $      0.85 /MWh
-     Today's Settl.:  $      4.61 /MWh
-     MTD Avg Settl.:  $      1.68 /MWh
-     Settl. Return:   🟢     +97.9%  ($    +123.81)
-     Today's P&L:     $     18.06
-     MTD P&L:         $     87.86
+     Today's Settl.:  $      2.66 /MWh
+     MTD Avg Settl.:  $      1.72 /MWh
+     Settl. Return:   🟢    +102.9%  ($    +130.13)
+     Today's P&L:     $      8.68
+     MTD P&L:         $     96.55
 
   📌 RDF→HAY (OPT) 0.1MW @ $1.65/MWh
      Investment:      $    122.76
      Price Paid:      $      1.65 /MWh
-     Today's Settl.:  $     10.27 /MWh
-     MTD Avg Settl.:  $      3.58 /MWh
-     Settl. Return:   🟢    +116.9%  ($    +143.51)
-     Today's P&L:     $     20.70
-     MTD P&L:         $    101.84
+     Today's Settl.:  $      4.17 /MWh
+     MTD Avg Settl.:  $      3.60 /MWh
+     Settl. Return:   🟢    +118.4%  ($    +145.41)
+     Today's P&L:     $      6.04
+     MTD P&L:         $    107.88
 
   📌 WKM→RDF (OPT) 1.0MW @ $0.13/MWh
      Investment:      $     96.72
      Price Paid:      $      0.13 /MWh
-     Today's Settl.:  $      0.00 /MWh
+     Today's Settl.:  $      0.27 /MWh
      MTD Avg Settl.:  $      0.12 /MWh
-     Settl. Return:   🔴     -11.3%  ($     -10.92)
-     Today's P&L:     $     -3.12
-     MTD P&L:         $     -7.75
+     Settl. Return:   🔴      -6.2%  ($      -5.98)
+     Today's P&L:     $      3.31
+     MTD P&L:         $     -4.44
 
   📌 HAY→BEN (OPT) 0.3MW @ $0.33/MWh
      Investment:      $     73.66
      Price Paid:      $      0.33 /MWh
-     Today's Settl.:  $      0.18 /MWh
-     MTD Avg Settl.:  $      1.19 /MWh
-     Settl. Return:   🟢    +260.0%  ($    +191.53)
-     Today's P&L:     $     -1.10
-     MTD P&L:         $    135.92
+     Today's Settl.:  $      0.24 /MWh
+     MTD Avg Settl.:  $      1.15 /MWh
+     Settl. Return:   🟢    +247.5%  ($    +182.31)
+     Today's P&L:     $     -0.66
+     MTD P&L:         $    135.25
 
   📌 KIK→BEN (OPT) 0.1MW @ $0.00/MWh
      Investment:      $      0.00
@@ -93,7 +93,7 @@ FLTR Portfolio Update — March 22, 2026
 ──────────────────────────────────────────────────
   💼 Portfolio Total
      Total Invested:  $  1,412.86
-     Settl. Impact:   $  +1,892.39
-     Today's P&L:     $    103.46
-     MTD P&L:         $  1,342.98  (+95.1%)
+     Settl. Impact:   $  +1,918.32
+     Today's P&L:     $     80.28
+     MTD P&L:         $  1,423.26  (+100.7%)
 ──────────────────────────────────────────────────
